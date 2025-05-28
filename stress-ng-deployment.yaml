@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stress-ng-deployment
+  labels:
+    app: stress-ng-load
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stress-ng-pod
+  template:
+    metadata:
+      labels:
+        app: stress-ng-pod
+    spec:
+      containers:
+      - name: stress-ng-container
+        image: polinux/stress-ng:latest
+        command: ["stress-ng"]
+        args:
+          - "--cpu"
+          - "1"          # 1 CPU worker
+          - "--cpu-load"
+          - "100"        # 100% CPU load
+          - "--verbose"
+        resources:
+          # Per GKE Autopilot, requests e limits dovrebbero essere uguali per CPU/Memory
+          requests:
+            cpu: "1"
+            memory: "256Mi"
+            ephemeral-storage: "500Mi"
+          limits:
+            cpu: "1"
+            memory: "256Mi"
