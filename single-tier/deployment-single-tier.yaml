@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: single-tier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: single-tier
+      tier: tier1
+  template:
+    metadata:
+      annotations:
+        vpa.k8s.io/in-place-update-policy: "true"
+      labels:
+        app: single-tier
+        tier: tier1
+    spec:
+      containers:
+        - name: single-tier-container
+          image: rpizziol/spring-test-app-tier3:0.27
+          imagePullPolicy: Always
+          resizePolicy:
+            - resourceName: cpu
+              restartPolicy: NotRequired
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "1000m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - containerPort: 80
+          # readinessProbe:
+          #   httpGet:
+          #     path: /health
+          #     port: 80
+          #   initialDelaySeconds: 5
+          #   periodSeconds: 5
+          # livenessProbe:
+          #   httpGet:
+          #     path: /health
+          #     port: 80
+          #   initialDelaySeconds: 0 # Immediate probes
+          #   periodSeconds: 20
+          #   timeoutSeconds: 5
+          #   successThreshold: 1
+          #   failureThreshold: 2
+          lifecycle:
+            preStop:
+              exec:
+                command: [ "pkill", "-15", "-f", "k8testpod" ]
