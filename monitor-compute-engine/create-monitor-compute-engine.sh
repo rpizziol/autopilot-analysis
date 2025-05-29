@@ -24,7 +24,7 @@ gcloud compute instances create "$INSTANCE_NAME" \
   --shielded-vtpm \
   --shielded-integrity-monitoring \
   --labels=goog-ops-agent-policy=v2-x86-template-1-4-0,goog-ec-src=vm_add-gcloud \
-  --tags="prometheus-server" \
+  --tags="$TARGET_TAG" \
   --reservation-affinity=any
 
 # Check the exit status of the gcloud command
