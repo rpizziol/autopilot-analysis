@@ -6,20 +6,6 @@ source "$(dirname "$0")/../environment.sh"
 # Script to create a Google Compute Engine instance named instance-1
 # using Ubuntu 24.04 LTS Minimal.
 
-# Define variables for clarity and easier modification
-INSTANCE_NAME="instance-1"
-MACHINE_TYPE="e2-medium"
-
-# Image details for Ubuntu 24.04 LTS Minimal
-IMAGE="projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20250523"
-
-DISK_SIZE="10" # GB
-DISK_TYPE="pd-balanced"
-DISK_RESOURCE_POLICY="projects/$PROJECT_ID/regions/$REGION/resourcePolicies/default-schedule-1"
-
-# Scopes for the service account
-SCOPES="https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/trace.append"
-
 echo "Attempting to create GCE instance: $INSTANCE_NAME in project $PROJECT_ID zone $ZONE..."
 echo "Using Ubuntu 24.04 LTS Minimal (latest from family: $IMAGE_FAMILY, project: $IMAGE_PROJECT)"
 
