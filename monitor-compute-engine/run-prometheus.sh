@@ -41,22 +41,30 @@ fi
 echo "Starting container '${STACKDRIVER_EXPORTER_NAME}'..."
 # Note: The metrics-prefixes and filters below are examples for Cloud Run.
 # You should customize them for the Kubernetes metrics or other metrics you need.
-if [ "$PROJECT_ID" == "your-gcp-project-id" ]; then
-    echo "WARNING: PROJECT_ID is not set. Please edit the script and replace 'your-gcp-project-id'."
-    echo "Stackdriver Exporter will likely fail to start or fetch metrics."
-else
-    sudo docker run -d \
-        --name "${STACKDRIVER_EXPORTER_NAME}" \
-        -p 9255:9255 \
-        --restart=unless-stopped \
-        --network "${NETWORK_NAME}" \
-        prometheuscommunity/stackdriver-exporter:latest \
-        --google.project-ids="$PROJECT_ID" \
-        --monitoring.metrics-prefixes="run.googleapis.com/container/instance_count" \
-        --monitoring.metrics-prefixes="run.googleapis.com/container/billable_instance_time" \
-        --monitoring.filters='resource.type = "cloud_run_revision"' \
-        --web.listen-address=":9255"
-fi
+
+# sudo docker run -d \
+#     --name "${STACKDRIVER_EXPORTER_NAME}" \
+#     -p 9255:9255 \
+#     --restart=unless-stopped \
+#     --network "${NETWORK_NAME}" \
+#     prometheuscommunity/stackdriver-exporter:latest \
+#     --google.project-ids="$PROJECT_ID" \
+#     --monitoring.metrics-prefixes="run.googleapis.com/container/instance_count" \
+#     --monitoring.metrics-prefixes="run.googleapis.com/container/billable_instance_time" \
+#     --monitoring.filters='resource.type = "cloud_run_revision"' \
+#     --web.listen-address=":9255"
+
+sudo docker run -d \
+    --name "${STACKDRIVER_EXPORTER_NAME}" \
+    -p 9255:9255 \
+    --restart=unless-stopped \
+    --network "${NETWORK_NAME}" \
+    prometheuscommunity/stackdriver-exporter:latest \
+    --google.project-ids="$PROJECT_ID" \
+    --monitoring.metrics-prefixes="kubernetes.io/node/status/ready" \
+    --monitoring.filters='resource.type = "k8s_node" AND resource.labels.project_id = "$PROJECT_ID" AND resource.labels.cluster_name = "$CLUSTER_NAME"' \
+    --web.listen-address=":9255"
+
 
 # Run Prometheus
 echo "Starting container '${PROMETHEUS_CONTAINER_NAME}'..."
