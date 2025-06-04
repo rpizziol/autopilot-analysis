@@ -18,6 +18,13 @@ sudo apt update
 sudo apt install git -y
 ```
 
+## Prometheus
+
+Run install-docker.sh.
+Run run-prometheus.sh.
+
+Then create a 
+
 ## Autopilot Cluster
 
 To create the Autopilot Cluster, execute the `deploy-autopilot-cluster.sh` script.
