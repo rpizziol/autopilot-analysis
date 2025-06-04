@@ -5,25 +5,52 @@ An infrastructure for experimenting with GKE Autopilot.
 
 The Compute Engine instance is used to retrieve metrics data for running applications in the cluster.
 
-To create it, run the `create-monitor-compute-engine.sh` script located in the `monitor-compute-engine` folder. Then, connect to it using the following command:
+### Initial Setup
 
-```bash
-gcloud compute ssh --zone "northamerica-northeast1-a" "instance-1" --project "syda-autopilot"
-```
+1. Navigate to the `init` folder and run the following scripts in order:
+   - `create-monitor.sh`
+   - `create-firewall-rule.sh`
 
-Once connected, install Git by running:
+2. Connect to the newly created Compute Engine instance using SSH:
+   ```bash
+   gcloud compute ssh --zone "northamerica-northeast1-a" "instance-1" --project "syda-autopilot"
+   ```
 
-```bash
-sudo apt update
-sudo apt install git -y
-```
+3. Once connected, execute the following commands:
+   ```bash
+   sudo apt update
+   sudo apt install git -y
+   ```
 
-## Prometheus
+4. Clone this project repository:
+   ```bash
+   git clone <repository-url>
+   cd autopilot-analysis
+   ```
 
-Run install-docker.sh.
-Run run-prometheus.sh.
+5. Run the `install-docker.sh` script:
+   ```bash
+   ./install-docker.sh
+   ```
 
-Then create a 
+6. Start Prometheus by running:
+   ```bash
+   ./run-prometheus.sh
+   ```
+
+### Regular Usage
+
+- To start the monitor Compute Engine, use:
+  ```bash
+  ./start-monitor.sh
+  ```
+
+- To stop the monitor Compute Engine, use:
+  ```bash
+  ./stop-monitor.sh
+  ```
+
+- Remember to run `run-prometheus.sh` from the Compute Engine every time after starting it.
 
 ## Autopilot Cluster
 
