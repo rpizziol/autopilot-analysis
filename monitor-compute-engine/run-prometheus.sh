@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Import environment variables
-source "$(dirname "$0")/../../environment.sh"
+source "$(dirname "$0")/../environment.sh"
 
 # Define container and network names
 PROMETHEUS_CONTAINER_NAME="prometheus"
