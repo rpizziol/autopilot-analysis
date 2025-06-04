@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Import environment variables
-source "$(dirname "$0")/../environment.sh"
+source "$(dirname "$0")/../../environment.sh"
 
 # Script to create a Google Compute Engine instance named instance-1
 # using Ubuntu 24.04 LTS Minimal.

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Import environment variables
-source "$(dirname "$0")/../environment.sh" # Assicurati che TARGET_TAG sia definito qui
+source "$(dirname "$0")/../../environment.sh" # Assicurati che TARGET_TAG sia definito qui
 
 # Verifica se la variabile TARGET_TAG è impostata
 if [ -z "$TARGET_TAG" ]; then
