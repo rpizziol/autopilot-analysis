@@ -50,7 +50,7 @@ sudo docker run -d \
     prometheuscommunity/stackdriver-exporter:latest \
     --google.project-ids="$PROJECT_ID" \
     --monitoring.metrics-prefixes="kubernetes.io/,container.googleapis.com/" \
-    --monitoring.filters='resource.type = "k8s_node" AND resource.labels.project_id = "$PROJECT_ID" AND resource.labels.cluster_name = "$CLUSTER_NAME"' \
+    --monitoring.filters="resource.type = \"k8s_node\" AND resource.labels.project_id = \"$PROJECT_ID\" AND resource.labels.cluster_name = \"$CLUSTER_NAME\"" \
     --web.listen-address=":9255"
 
 
