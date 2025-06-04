@@ -51,6 +51,8 @@ sudo docker run -d \
     --google.project-ids="$PROJECT_ID" \
     --monitoring.metrics-prefixes="kubernetes.io/node/cpu/allocatable_cores" \
     --monitoring.filters="resource.type = \"k8s_node\" AND resource.labels.project_id = \"$PROJECT_ID\" AND resource.labels.cluster_name = \"$CLUSTER_NAME\"" \
+    --monitoring.metrics-prefixes="prometheus.googleapis.com/kube_deployment_spec_replicas" \
+    --monitoring.filters="resource.type = \"prometheus_target\" AND resource.labels.project_id = \"$PROJECT_ID\" AND resource.labels.cluster = \"$CLUSTER_NAME\" AND resource.labels.location = \"$LOCATION\"" \
     --web.listen-address=":9255"
 
 
