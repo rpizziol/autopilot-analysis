@@ -65,7 +65,7 @@ def query_prometheus_range(prometheus_url, query, start_time_unix, end_time_unix
 
 def main():
     parser = argparse.ArgumentParser(description="Script for deployment, scaling, and collecting metrics from Prometheus.")
-    parser.add_argument("application_name", help="Base name of the application (e.g., my-app). Used by convention for YAML files and deployment names.")
+    parser.add_argument("application_name", help="Base name of the application (e.g., my-app). Used by convention for YAML files (expected in ./../webapp/) and deployment names.")
     parser.add_argument("--namespace", default="default", help="Kubernetes namespace to operate in (default: default).")
     parser.add_argument("--wait_minutes", type=float, default=1.0, help="Minutes to wait between scaling steps (default: 1.0, can be a float).")
     parser.add_argument("--prometheus_url", default="http://localhost:9090", help="URL of the Prometheus server (default: http://localhost:9090).")
@@ -76,7 +76,13 @@ def main():
 
     args = parser.parse_args()
 
-    deployment_yaml_file = f"{args.application_name}-deployment.yaml"
+    # --- MODIFIED ---
+    # Deployment YAML file is expected in ./../webapp/ directory
+    deployment_yaml_file = os.path.join(".", "..", "webapp", f"{args.application_name}-deployment.yaml")
+    # Normalize the path for cleaner print outputs and consistent behavior
+    deployment_yaml_file = os.path.normpath(deployment_yaml_file)
+    # --- END MODIFIED ---
+
     # Convention: the Kubernetes deployment name is app_name-deployment
     deployment_k8s_name = f"{args.application_name}-deployment"
 
@@ -92,9 +98,11 @@ def main():
 
     try:
         # 2. Deploy the application
-        print(f"\n--- Deploying application: {args.application_name} in namespace {args.namespace} ---")
+        print(f"\n--- Deploying application: {args.application_name} in namespace {args.namespace} from {deployment_yaml_file} ---")
         if not os.path.exists(deployment_yaml_file):
-            print(f"ERROR: Deployment file '{deployment_yaml_file}' not found. Ensure it exists in the current directory or specify a full path.")
+            # --- MODIFIED ERROR MESSAGE ---
+            print(f"ERROR: Deployment file '{deployment_yaml_file}' not found. Ensure it exists in the './../webapp/' directory relative to the script's execution path.")
+            # --- END MODIFIED ERROR MESSAGE ---
             return 1 # Exit with error code
         run_kubectl_command(["apply", "-f", deployment_yaml_file, "-n", args.namespace],
                             f"Deployment of {deployment_yaml_file} failed")
