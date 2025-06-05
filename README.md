@@ -20,6 +20,8 @@ The Compute Engine instance is used to retrieve metrics data for running applica
    ```bash
    sudo apt update
    sudo apt install git -y
+   sudo apt install python3-pip -y
+   sudo apt install python3-venv -y
    ```
 
 4. Clone this project repository:
@@ -73,6 +75,19 @@ To scale the number of replicas for a deployment, use:
 kubectl scale deployment stress-ng-deployment --replicas=<NUMBER_OF_REPLICAS>
 ```
 
+## Experiments
+
+Before running an experiment, make sure to have installed all the required Python dependencies in the appropriate virtual environment. Navigate to the `experiments` folder and then run:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip3 install -r requirements.txt
+```
+
+
 ## Authors
 
 * [Roberto Pizziol](https://github.com/rpizziol)
+
+
