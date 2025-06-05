@@ -107,8 +107,8 @@ def main():
         run_kubectl_command(["apply", "-f", deployment_yaml_file, "-n", args.namespace],
                             f"Deployment of {deployment_yaml_file} failed")
         print(f"Deployment '{deployment_k8s_name}' applied.")
-        print("Waiting 10 seconds for initial deployment startup...")
-        time.sleep(10)
+        print(f"\n--- Waiting for {args.wait_minutes} minutes ---")
+        time.sleep(wait_seconds)
 
         # 3. Perform initial scaling to 2 replicas
         print(f"\n--- Scaling {deployment_k8s_name} to 2 replicas ---")
