@@ -97,6 +97,9 @@ def main():
         f.write(f"START_TIME_UNIX={start_time_unix}\n")
 
     try:
+
+        wait_seconds = args.wait_minutes * 60
+        
         # 2. Deploy the application
         print(f"\n--- Deploying application: {args.application_name} in namespace {args.namespace} from {deployment_yaml_file} ---")
         if not os.path.exists(deployment_yaml_file):
@@ -108,7 +111,7 @@ def main():
                             f"Deployment of {deployment_yaml_file} failed")
         print(f"Deployment '{deployment_k8s_name}' applied.")
         print(f"\n--- Waiting for {args.wait_minutes} minutes ---")
-        time.sleep(wait_seconds)
+        time.sleep(wait_seconds * 2) # Wait for initial deployment to stabilize
 
         # 3. Perform initial scaling to 2 replicas
         print(f"\n--- Scaling {deployment_k8s_name} to 2 replicas ---")
@@ -117,7 +120,6 @@ def main():
         print(f"Deployment '{deployment_k8s_name}' scaled to 2 replicas.")
 
         # 4. Wait X minutes, scale to 3, wait X minutes, scale to 4
-        wait_seconds = args.wait_minutes * 60
 
         print(f"\n--- Waiting for {args.wait_minutes} minutes ---")
         time.sleep(wait_seconds)
