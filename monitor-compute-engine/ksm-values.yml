@@ -1,2 +1,6 @@
+# ksm-values.yml
+service:
+  type: LoadBalancer
+
 extraArgs:
   - --metric-labels-allowlist=nodes=[cloud.google.com/gke-machine-type,node.kubernetes.io/instance-type]
