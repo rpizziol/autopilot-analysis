@@ -7,3 +7,7 @@ scrape_configs:
     honor_labels: true # Important to keep labels (like function_name)
     static_configs:
       - targets: ['stackdriver-exporter:9255']
+
+- job_name: 'kube-state-metrics'
+  static_configs:
+  - targets: ['kube-state-metrics.default.svc.cluster.local:8080']
