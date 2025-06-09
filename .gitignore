@@ -1,0 +1,6 @@
+# Ignore all files inside the experiments/data folder
+experiments/data/
+
+# Ignore virtual environment folders
+venv/
+*/venv/
