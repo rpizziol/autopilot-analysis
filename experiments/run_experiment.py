@@ -92,9 +92,13 @@ def main():
         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M")
         args.experiment_name = f"{current_time}_{args.application_name}"
 
-    # Derive file names from experiment_name
-    times_file = f"{args.experiment_name}_times.txt"
-    metrics_csv_file = f"{args.experiment_name}_export.csv"
+    # Ensure the "data" folder exists
+    data_folder = "data"
+    os.makedirs(data_folder, exist_ok=True)
+
+    # Derive file names from experiment_name and save them in the "data" folder
+    times_file = os.path.join(data_folder, f"{args.experiment_name}_times.txt")
+    metrics_csv_file = os.path.join(data_folder, f"{args.experiment_name}_export.csv")
 
     # Deployment YAML file is expected in ./../webapps/ directory
     deployment_yaml_file = os.path.join(".", "..", "webapps", f"{args.application_name}-deployment.yaml")
