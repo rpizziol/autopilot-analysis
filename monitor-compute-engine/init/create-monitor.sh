@@ -18,7 +18,7 @@ gcloud compute instances create "$INSTANCE_NAME" \
   --maintenance-policy=MIGRATE \
   --provisioning-model=STANDARD \
   --service-account="$SERVICE_ACCOUNT_EMAIL" \
-  --scopes="$SCOPES" \
+  --scopes=cloud-platform \
   --create-disk=auto-delete=yes,boot=yes,device-name="$INSTANCE_NAME",disk-resource-policy="$DISK_RESOURCE_POLICY",image="$IMAGE",mode=rw,size="${DISK_SIZE}",type="$DISK_TYPE" \
   --no-shielded-secure-boot \
   --shielded-vtpm \
