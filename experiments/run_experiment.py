@@ -84,6 +84,7 @@ def main():
     parser.add_argument("--prometheus_url", default="http://localhost:9090", help="URL of the Prometheus server (default: http://localhost:9090).")
     parser.add_argument("--sampling_interval", default="15s", help="Sampling interval for Prometheus queries (default: 15s).")
     parser.add_argument("--max_replicas", type=int, default=4, help="Maximum number of replicas to scale up to (default: 4).")
+    parser.add_argument("--step_size", type=int, default=1, help="Step size for scaling replicas (default: 1).")
 
     args = parser.parse_args()
 
@@ -140,7 +141,7 @@ def main():
         
         # --- MODIFIED SCALING LOGIC ---
         # Scale up from 2 to max_replicas
-        for replicas in range(2, args.max_replicas + 1):
+        for replicas in range(2, args.max_replicas + 1, args.step_size):
             print(f"\n--- Scaling {deployment_k8s_name} to {replicas} replicas ---")
             run_kubectl_command(["scale", "deployment", deployment_k8s_name, f"--replicas={replicas}", "-n", args.namespace],
                                 f"Scaling {deployment_k8s_name} to {replicas} replicas failed")
@@ -156,7 +157,7 @@ def main():
             time.sleep(wait_seconds)
 
         # Scale down from max_replicas back to 2
-        for replicas in range(args.max_replicas - 1, 1, -1):
+        for replicas in range(args.max_replicas - args.step_size, 1, -args.step_size):
             print(f"\n--- Scaling {deployment_k8s_name} to {replicas} replicas ---")
             run_kubectl_command(["scale", "deployment", deployment_k8s_name, f"--replicas={replicas}", "-n", args.namespace],
                                 f"Scaling {deployment_k8s_name} to {replicas} replicas failed")
