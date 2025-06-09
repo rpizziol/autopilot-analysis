@@ -1,0 +1,2 @@
+extraArgs:
+  - --metric-labels-allowlist=nodes=[cloud.google.com/gke-machine-type,node.kubernetes.io/instance-type]
