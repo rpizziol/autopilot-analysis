@@ -10,4 +10,4 @@ scrape_configs:
 
   - job_name: 'kube-state-metrics'
     static_configs:
-    - targets: ['34.95.60.71:8080']
+    - targets: ['gke-cluster-ksm:8080']

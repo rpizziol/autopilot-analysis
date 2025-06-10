@@ -22,6 +22,7 @@ The Compute Engine instance is used to retrieve metrics data for running applica
    sudo apt install git -y
    sudo apt install python3-pip -y
    sudo apt install python3-venv -y
+   sudo apt install nano
    ```
 
 4. Clone this project repository:
@@ -57,6 +58,33 @@ The Compute Engine instance is used to retrieve metrics data for running applica
 ## Autopilot Cluster
 
 To create the Autopilot Cluster, execute the `deploy-autopilot-cluster.sh` script.
+
+### kube-state-metrics
+
+To access cluster metrics from outside (via the Compute Engine), kube-state-metrics must be installed.
+
+1. Add the Prometheus Helm repository and update it:
+   ```bash
+   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+   helm repo update
+   ```
+
+2. Regenerate the cluster configuration if necessary:
+   ```bash
+   gcloud container clusters get-credentials autopilot-cluster-1 --location northamerica-northeast1
+   ```
+
+3. Install kube-state-metrics using Helm:
+   ```bash
+   helm install kube-state-metrics prometheus-community/kube-state-metrics --namespace default -f ksm-values.yaml
+   ```
+
+4. Update the `/etc/hosts` file on the Monitoring Compute Engine to reference the LoadBalancer's IP:
+   ```bash
+   IP=$(kubectl get service kube-state-metrics -n default -o=jsonpath='{.status.loadBalancer.ingress[0].ip}') && sudo grep -q 'gke-cluster-ksm' /etc/hosts && sudo sed -i "s/.* gke-cluster-ksm/$IP gke-cluster-ksm/" /etc/hosts || echo "$IP gke-cluster-ksm" | sudo tee -a /etc/hosts > /dev/null
+   ```
+
+Once the `/etc/hosts` file is updated, running `run-prometheus.sh` should work as expected.
 
 ### Viewing the List of Nodes (with Node Type)
 
