@@ -86,6 +86,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Construct the full file path from the experiment name
-    csv_filepath = os.path.join("data", f"{args.experiment_name}_export.csv")
+    csv_filepath = os.path.join("data", args.experiment_name, f"{args.experiment_name}_export.csv")
 
     create_combined_plot(csv_filepath, args.experiment_name)
