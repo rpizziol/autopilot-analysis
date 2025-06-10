@@ -262,7 +262,7 @@ def main():
                         "deployment_spec_replicas": data_for_row.get("deployment_spec_replicas")
                     }
                     for node_type in sorted_node_types:
-                        row_to_write[node_type] = data_for_row.get(node_type)
+                        row_to_write[node_type] = data_for_row.get(node_type, '0')  # Default to '0' if no data
                     
                     writer.writerow(row_to_write)
 
