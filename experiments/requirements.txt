@@ -2,3 +2,5 @@ requests
 pandas
 matplotlib
 argparse
+locust
+numpy
