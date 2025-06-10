@@ -139,7 +139,6 @@ def main():
         # 3. Perform scaling steps
         print(f"\n--- Scaling {deployment_k8s_name} from 2 to {args.max_replicas} replicas and back to 2 ---")
         
-        # --- MODIFIED SCALING LOGIC ---
         # Scale up from 2 to max_replicas
         for replicas in range(2, args.max_replicas + 1, args.step_size):
             print(f"\n--- Scaling {deployment_k8s_name} to {replicas} replicas ---")
@@ -171,7 +170,6 @@ def main():
             # Now, wait for the specified duration to collect metrics
             print(f"--- Waiting for {args.wait_minutes} minutes to collect metrics ---")
             time.sleep(wait_seconds)
-        # --- END MODIFIED SCALING LOGIC ---
             
         print("Scaling completed.")
 
@@ -211,9 +209,9 @@ def main():
     except Exception as e:
         print(f"Warning: unable to read precise times from file '{times_file}'. Using script start/end times. Error: {e}")
 
-    metric1_query = "count(stackdriver_k_8_s_node_kubernetes_io_node_cpu_allocatable_cores)"
-    metric2_query = f'stackdriver_prometheus_target_prometheus_googleapis_com_kube_deployment_spec_replicas_gauge{{deployment="{deployment_k8s_name}", namespace="{args.namespace}"}}'
-    
+    metric1_query = f'stackdriver_prometheus_target_prometheus_googleapis_com_kube_deployment_spec_replicas_gauge{{deployment="{deployment_k8s_name}", namespace="{args.namespace}"}}'
+    metric2_query = "count by (label_node_kubernetes_io_instance_type) (kube_node_labels)"
+
     print(f"Metric Query 1: {metric1_query}")
     print(f"Metric Query 2: {metric2_query}")
 
@@ -221,67 +219,67 @@ def main():
     metric2_data_raw = query_prometheus_range(args.prometheus_url, metric2_query, final_start_time_unix_for_query, final_end_time_unix_for_query, args.sampling_interval)
 
     metrics_by_ts = {}
+    node_types = set()
 
     for ts_float, val_str in metric1_data_raw:
         ts_int = int(float(ts_float))
         if ts_int not in metrics_by_ts:
             metrics_by_ts[ts_int] = {}
-        metrics_by_ts[ts_int]["node_count"] = val_str
+        metrics_by_ts[ts_int]["deployment_spec_replicas"] = val_str
 
     for ts_float, val_str in metric2_data_raw:
         ts_int = int(float(ts_float))
         if ts_int not in metrics_by_ts:
             metrics_by_ts[ts_int] = {}
-        metrics_by_ts[ts_int]["spec_replicas"] = val_str
-    
+        node_type, count = val_str.split(" ", 1)  # Assuming Prometheus returns "node_type count"
+        metrics_by_ts[ts_int][node_type] = count
+        node_types.add(node_type)
+
     if not metrics_by_ts:
         print("No metric data retrieved from Prometheus. The CSV file will not be generated or will be empty.")
     else:
         query_start_sec = int(final_start_time_unix_for_query)
         query_end_sec = int(final_end_time_unix_for_query)
-        step_seconds = 15 # Default
+        step_seconds = 15  # Default
         try:
             if args.sampling_interval.endswith('s'):
                 step_seconds = int(args.sampling_interval[:-1])
             elif args.sampling_interval.endswith('m'):
                 step_seconds = int(args.sampling_interval[:-1]) * 60
         except ValueError:
-             print(f"Could not parse sampling interval '{args.sampling_interval}'. Using {step_seconds}s.")
-
+            print(f"Could not parse sampling interval '{args.sampling_interval}'. Using {step_seconds}s.")
 
         with open(metrics_csv_file, "w", newline="") as csvfile:
-            fieldnames = ["timestamp_iso", "timestamp_unix", "node_count", "deployment_spec_replicas"]
+            fieldnames = ["timestamp_iso", "timestamp_unix", "deployment_spec_replicas"] + sorted(node_types)
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
 
             if step_seconds > 0:
-                # Align start time to the step interval for cleaner data points
                 aligned_start_ts = query_start_sec - (query_start_sec % step_seconds)
                 for current_ts_unix in range(aligned_start_ts, query_end_sec + step_seconds, step_seconds):
                     ts_iso = datetime.datetime.fromtimestamp(current_ts_unix, datetime.timezone.utc).isoformat()
-                    # Find the closest timestamp in our collected data
                     closest_ts = min(metrics_by_ts.keys(), key=lambda ts: abs(ts - current_ts_unix)) if metrics_by_ts else None
-                    
-                    data_row = {}
-                    # Only use data if it's within a reasonable window of the interval (e.g., half the step)
+
+                    data_row = {node_type: "0" for node_type in node_types}  # Default zeros for all node types
                     if closest_ts is not None and abs(closest_ts - current_ts_unix) < step_seconds:
-                        data_row = metrics_by_ts.get(closest_ts, {})
+                        data_row.update(metrics_by_ts.get(closest_ts, {}))
 
                     writer.writerow({
                         "timestamp_iso": ts_iso,
                         "timestamp_unix": current_ts_unix,
-                        "node_count": data_row.get("node_count"),
-                        "deployment_spec_replicas": data_row.get("spec_replicas")
+                        "deployment_spec_replicas": data_row.get("deployment_spec_replicas", "0"),
+                        **{node_type: data_row.get(node_type, "0") for node_type in node_types}
                     })
             else:
-                 sorted_timestamps = sorted(metrics_by_ts.keys())
-                 for ts_unix in sorted_timestamps:
+                sorted_timestamps = sorted(metrics_by_ts.keys())
+                for ts_unix in sorted_timestamps:
                     ts_iso = datetime.datetime.fromtimestamp(ts_unix, datetime.timezone.utc).isoformat()
+                    data_row = metrics_by_ts[ts_unix]
                     writer.writerow({
                         "timestamp_iso": ts_iso,
                         "timestamp_unix": ts_unix,
-                        "node_count": metrics_by_ts[ts_unix].get("node_count"),
-                        "deployment_spec_replicas": metrics_by_ts[ts_unix].get("spec_replicas")
+                        "deployment_spec_replicas": data_row.get("deployment_spec_replicas", "0"),
+                        **{node_type: data_row.get(node_type, "0") for node_type in node_types}
                     })
 
         print(f"Metrics exported to '{metrics_csv_file}'")
