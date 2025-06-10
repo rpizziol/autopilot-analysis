@@ -1,7 +1,9 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: single-tier
+  name: single-tier-hpa
+  labels:
+    app: single-tier
   namespace: default
 spec:
   scaleTargetRef:

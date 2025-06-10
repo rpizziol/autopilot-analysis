@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: single-tier
+  name: single-tier-service
   labels:
     app: single-tier
 spec:
