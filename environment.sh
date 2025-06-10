@@ -10,7 +10,7 @@ RELEASE_CHANNEL="regular"
 TIER="standard"
 
 # Compute Engine instance configuration
-INSTANCE_NAME="instance-2"
+INSTANCE_NAME="instance-1"
 MACHINE_TYPE="e2-medium"
 # Image details for Ubuntu 24.04 LTS Minimal
 IMAGE="projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20250523"
