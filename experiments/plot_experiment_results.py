@@ -59,9 +59,15 @@ def create_combined_plot(csv_filepath, experiment_name):
     ax.legend(fontsize=10)
     ax.grid(True, which='both', linestyle='--', linewidth=0.5)
     
-    # Improve date formatting on the x-axis
+    # Set major ticks to appear every minute
+    ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=1))
+    # Format the major tick labels to show Hour:Minute:Second
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    # Optional: Add minor ticks for every 15 seconds for more detail
+    ax.xaxis.set_minor_locator(mdates.SecondLocator(interval=15))
+    
     fig.autofmt_xdate() # Rotate and align the tick labels nicely
+
     plt.tight_layout() # Adjust layout to make room for labels
 
     # Save the plot to a file
