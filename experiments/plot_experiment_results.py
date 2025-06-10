@@ -70,8 +70,10 @@ def create_combined_plot(csv_filepath, experiment_name):
 
     plt.tight_layout() # Adjust layout to make room for labels
 
-    # Save the plot to a file
-    plot_filename = os.path.join("data", f'{experiment_name}_full_summary.png')
+    # Save the plot to a file inside the experiment folder
+    experiment_folder = os.path.join("data", experiment_name)
+    os.makedirs(experiment_folder, exist_ok=True)  # Ensure the folder exists
+    plot_filename = os.path.join(experiment_folder, f'{experiment_name}_full_summary.png')
     fig.savefig(plot_filename, dpi=300)
     print(f"Combined plot saved to '{plot_filename}'")
     

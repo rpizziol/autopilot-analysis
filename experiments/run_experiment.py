@@ -87,9 +87,10 @@ def main():
         args.experiment_name = f"{current_time}_{args.application_name}"
 
     data_folder = "data"
-    os.makedirs(data_folder, exist_ok=True)
-    times_file = os.path.join(data_folder, f"{args.experiment_name}_times.txt")
-    metrics_csv_file = os.path.join(data_folder, f"{args.experiment_name}_export.csv")
+    experiment_folder = os.path.join(data_folder, args.experiment_name)
+    os.makedirs(experiment_folder, exist_ok=True)
+    times_file = os.path.join(experiment_folder, "times.txt")
+    metrics_csv_file = os.path.join(experiment_folder, "export.csv")
     deployment_yaml_file = os.path.join(".", "..", "webapps", f"{args.application_name}-deployment.yaml")
     deployment_yaml_file = os.path.normpath(deployment_yaml_file)
     deployment_k8s_name = f"{args.application_name}-deployment"
