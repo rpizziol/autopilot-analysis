@@ -14,7 +14,7 @@ def run_kubectl_command(command_args, error_message_prefix="Error during kubectl
     try:
         full_command = ["kubectl"] + command_args
         print(f"Executing: {' '.join(full_command)}")
-        # Increased timeout to handle slow rollouts
+        # Increased timeout to handle slow rollouts or termination
         result = subprocess.run(full_command, check=True, capture_output=True, text=True, timeout=1800) # 30 minutes
         if result.stdout:
             print(f"kubectl stdout: {result.stdout.strip()}")
@@ -49,7 +49,7 @@ def query_prometheus_range(prometheus_url, query, start_time_unix, end_time_unix
         data = response.json()
         if data["status"] == "success":
             if "result" in data["data"] and len(data["data"]["result"]) > 0:
-                return data["data"]["result"] # Returns a list of metric objects
+                return data["data"]["result"]
             else:
                 print(f"Warning: No data returned from Prometheus for query: {query}")
                 return []
@@ -69,7 +69,7 @@ def query_prometheus_range(prometheus_url, query, start_time_unix, end_time_unix
 # --- Main Script ---
 
 def main():
-    parser = argparse.ArgumentParser(description="Script for deployment, scaling, and collecting metrics from Prometheus.")
+    parser = argparse.ArgumentParser(description="Script for deployment, scaling, cleanup, and collecting metrics.")
     parser.add_argument("application_name", help="Base name of the application.")
     parser.add_argument("--experiment_name", help="Name of the experiment. Defaults to 'YYYYMMDD_HHmm_{application_name}'.")
     parser.add_argument("--namespace", default="default", help="Kubernetes namespace.")
@@ -81,7 +81,7 @@ def main():
 
     args = parser.parse_args()
 
-    # Generate default experiment_name if not provided
+    # --- Setup ---
     if not args.experiment_name:
         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M")
         args.experiment_name = f"{current_time}_{args.application_name}"
@@ -93,13 +93,14 @@ def main():
     deployment_yaml_file = os.path.join(".", "..", "webapps", f"{args.application_name}-deployment.yaml")
     deployment_yaml_file = os.path.normpath(deployment_yaml_file)
     deployment_k8s_name = f"{args.application_name}-deployment"
-    rollout_timeout = "30m" # Increased timeout to handle Autopilot node provisioning
+    rollout_timeout = "30m"
+    
+    end_time_unix = None # Initialize end_time to None
 
-    # 1. Start time recording
+    # --- Start Time Recording ---
     start_time_dt = datetime.datetime.now(datetime.timezone.utc)
     start_time_unix = start_time_dt.timestamp()
     start_time_iso = start_time_dt.isoformat()
-
     print(f"Experiment start: {start_time_iso}")
     with open(times_file, "w") as f:
         f.write(f"START_TIME_ISO={start_time_iso}\n")
@@ -108,19 +109,17 @@ def main():
     try:
         wait_seconds = args.wait_minutes * 60
 
-        # 2. Deploy application
+        # --- 1. Deploy Application ---
         print(f"\n--- Deploying application: {args.application_name} ---")
         if not os.path.exists(deployment_yaml_file):
             print(f"ERROR: Deployment file '{deployment_yaml_file}' not found.")
             return 1
         run_kubectl_command(["apply", "-f", deployment_yaml_file, "-n", args.namespace])
-        print(f"Deployment '{deployment_k8s_name}' applied.")
-
         print(f"\n--- Waiting for initial rollout of '{deployment_k8s_name}'... ---")
         run_kubectl_command(["rollout", "status", f"deployment/{deployment_k8s_name}", "-n", args.namespace, f"--timeout={rollout_timeout}"])
         print(f"Deployment '{deployment_k8s_name}' is ready.")
 
-        # 3. Perform scaling steps
+        # --- 2. Perform Scaling Steps ---
         print(f"\n--- Scaling {deployment_k8s_name} from 2 up to {args.max_replicas} and down ---")
         
         # Scale up
@@ -129,7 +128,6 @@ def main():
             run_kubectl_command(["scale", "deployment", deployment_k8s_name, f"--replicas={replicas}", "-n", args.namespace])
             print(f"--- Waiting for rollout to complete for {replicas} replicas... ---")
             run_kubectl_command(["rollout", "status", f"deployment/{deployment_k8s_name}", "-n", args.namespace, f"--timeout={rollout_timeout}"])
-            print(f"Deployment is stable with {replicas} replicas.")
             print(f"--- Waiting for {args.wait_minutes} minutes to collect metrics ---")
             time.sleep(wait_seconds)
 
@@ -139,30 +137,47 @@ def main():
             run_kubectl_command(["scale", "deployment", deployment_k8s_name, f"--replicas={replicas}", "-n", args.namespace])
             print(f"--- Waiting for rollout to complete for {replicas} replicas... ---")
             run_kubectl_command(["rollout", "status", f"deployment/{deployment_k8s_name}", "-n", args.namespace, f"--timeout={rollout_timeout}"])
-            print(f"Deployment is stable with {replicas} replicas.")
             print(f"--- Waiting for {args.wait_minutes} minutes to collect metrics ---")
             time.sleep(wait_seconds)
             
-        print("Scaling completed.")
+        print("Scaling steps completed.")
 
-    except Exception as e:
-        print(f"An error interrupted the experiment during kubectl operations: {e}")
-    finally:
-        # 4. End time recording
+        # --- 3. Cleanup Phase ---
+        print(f"\n--- Deleting application '{deployment_k8s_name}' and waiting for termination ---")
+        # The --wait flag ensures the command blocks until the resource and its dependents are gone.
+        run_kubectl_command(["delete", "deployment", deployment_k8s_name, "-n", args.namespace, "--wait=true"])
+        print(f"Deployment '{deployment_k8s_name}' and its pods have been deleted.")
+        
+        # Record end time ONLY on successful completion of all steps
         end_time_dt = datetime.datetime.now(datetime.timezone.utc)
         end_time_unix = end_time_dt.timestamp()
         end_time_iso = end_time_dt.isoformat()
-
-        print(f"\nExperiment end (or attempt): {end_time_iso}")
+        print(f"\nExperiment completed successfully at: {end_time_iso}")
         with open(times_file, "a") as f:
             f.write(f"END_TIME_ISO={end_time_iso}\n")
             f.write(f"END_TIME_UNIX={end_time_unix}\n")
 
-    # 5. Generate CSV from Prometheus metrics
-    print(f"\n--- Generating CSV of metrics from {args.prometheus_url} ---")
+    except Exception as e:
+        print(f"\nAn error interrupted the experiment: {e}")
+    finally:
+        # If an error occurred, end_time_unix will still be None.
+        # Record the time of the error as the end time.
+        if end_time_unix is None:
+            print("Recording end time after an error or interruption.")
+            end_time_dt = datetime.datetime.now(datetime.timezone.utc)
+            end_time_unix = end_time_dt.timestamp()
+            end_time_iso = end_time_dt.isoformat()
+            with open(times_file, "a") as f:
+                f.write(f"END_TIME_ISO={end_time_iso}\n")
+                f.write(f"END_TIME_UNIX={end_time_unix}\n")
 
+    # --- 4. Generate CSV from Prometheus Metrics ---
+    print(f"\n--- Generating CSV of metrics from {args.prometheus_url} ---")
+    
+    # ... (The rest of the metrics processing and CSV writing logic remains the same) ...
     final_start_time_unix_for_query = start_time_unix
     final_end_time_unix_for_query = end_time_unix
+    # This block now uses the final, correct end_time_unix
     try:
         times_data = {}
         with open(times_file, "r") as f:
@@ -175,11 +190,9 @@ def main():
     except Exception as e:
         print(f"Warning: unable to read times from file '{times_file}'. Using script start/end times. Error: {e}")
 
-    # --- METRICS QUERIES AND PROCESSING ---
-    
     metric_spec_replicas_query = f'kube_deployment_spec_replicas{{deployment="{deployment_k8s_name}", namespace="{args.namespace}"}}'
     metric_ready_replicas_query = f'kube_deployment_status_replicas_available{{deployment="{deployment_k8s_name}", namespace="{args.namespace}"}}'
-    node_type_label_name = 'label_node_kubernetes_io_instance_type' 
+    node_type_label_name = 'label_node_kubernetes_io_instance_type'
     metric_nodes_query = f"count by ({node_type_label_name}) (kube_node_labels)"
 
     print(f"Metric Query for Desired Replicas: {metric_spec_replicas_query}")
@@ -192,23 +205,18 @@ def main():
 
     metrics_by_ts = {}
     
-    # Process Desired Replicas
     if spec_replicas_data:
         for ts_float, val_str in spec_replicas_data[0].get("values", []):
             ts_int = int(float(ts_float))
-            if ts_int not in metrics_by_ts:
-                metrics_by_ts[ts_int] = {}
+            if ts_int not in metrics_by_ts: metrics_by_ts[ts_int] = {}
             metrics_by_ts[ts_int]["deployment_spec_replicas"] = val_str
 
-    # Process Ready Replicas
     if ready_replicas_data:
         for ts_float, val_str in ready_replicas_data[0].get("values", []):
             ts_int = int(float(ts_float))
-            if ts_int not in metrics_by_ts:
-                metrics_by_ts[ts_int] = {}
+            if ts_int not in metrics_by_ts: metrics_by_ts[ts_int] = {}
             metrics_by_ts[ts_int]["deployment_ready_replicas"] = val_str
 
-    # Process Node data
     node_types = set()
     for series in nodes_data:
         node_type = series.get("metric", {}).get(node_type_label_name)
@@ -216,22 +224,19 @@ def main():
         node_types.add(node_type)
         for ts_float, val_str in series.get("values", []):
             ts_int = int(float(ts_float))
-            if ts_int not in metrics_by_ts:
-                metrics_by_ts[ts_int] = {}
+            if ts_int not in metrics_by_ts: metrics_by_ts[ts_int] = {}
             metrics_by_ts[ts_int][node_type] = val_str
 
     if not metrics_by_ts:
         print("No metric data retrieved from Prometheus. The CSV file will not be generated or will be empty.")
     else:
-        # Determine CSV step interval
-        step_seconds = 15 
+        step_seconds = 15
         try:
             if args.sampling_interval.endswith('s'): step_seconds = int(args.sampling_interval[:-1])
             elif args.sampling_interval.endswith('m'): step_seconds = int(args.sampling_interval[:-1]) * 60
         except (ValueError, IndexError):
             print(f"Could not parse sampling interval '{args.sampling_interval}'. Using {step_seconds}s for CSV.")
         
-        # Dynamically generate CSV headers
         sorted_node_types = sorted(list(node_types))
         fieldnames = ["timestamp_iso", "timestamp_unix", "deployment_spec_replicas", "deployment_ready_replicas"] + sorted_node_types
         
@@ -253,7 +258,6 @@ def main():
                     if closest_ts is not None and abs(closest_ts - current_ts_unix) < step_seconds:
                         data_for_row = metrics_by_ts.get(closest_ts, {})
 
-                    # Prepare row for writing, providing '0' as default for missing values
                     row_to_write = {
                         "timestamp_iso": datetime.datetime.fromtimestamp(current_ts_unix, datetime.timezone.utc).isoformat(),
                         "timestamp_unix": current_ts_unix,
