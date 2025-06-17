@@ -13,7 +13,7 @@ source "$(dirname "$0")/../environment.sh"
 
 # Name of the custom values file for the Helm chart.
 # This file should be in the same directory as the script.
-KSM_VALUES_FILE="ksm-values.yaml" 
+KSM_VALUES_FILE="ksm-values.yml" 
 
 # --- Phase 1: Create GKE Autopilot Cluster ---
 echo ">>> Phase 1: Creating or verifying GKE Autopilot cluster '$CLUSTER_NAME'..."
@@ -33,12 +33,12 @@ else
 fi
 
 # --- Phase 2: Configure kubectl ---
-echo "\n>>> Phase 2: Configuring kubectl to connect to the cluster..."
+echo -e "\n>>> Phase 2: Configuring kubectl to connect to the cluster..."
 gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID"
 echo "kubectl is now configured to use context for '$CLUSTER_NAME'."
 
 # --- Phase 3: Deploy kube-state-metrics via Helm ---
-echo "\n>>> Phase 3: Installing monitoring components (kube-state-metrics)..."
+echo -e "\n>>> Phase 3: Installing monitoring components (kube-state-metrics)..."
 
 # Add the required Helm repository. It's safe to run this multiple times.
 echo "Adding prometheus-community Helm repo..."
@@ -58,7 +58,7 @@ helm upgrade --install kube-state-metrics prometheus-community/kube-state-metric
   --namespace default \
   -f "$KSM_VALUES_FILE"
 
-echo "\n--- Setup Complete ---"
+echo -e "\n--- Setup Complete ---"
 echo "Your GKE cluster environment is ready for experiments."
 echo "You can check the status of the kube-state-metrics service with:"
 echo "kubectl get service kube-state-metrics --namespace default"
